@@ -1,132 +1,179 @@
-
-// A library application
-
-let myLibrary = []
-
-
 /*
- * @param {title}: title of book
- * @param {author}: author of book
- * @param {pages): Number of pages in book
- * @param {read}: whether a book has been read or not
- */
-function Book(title, author, pages, genre){
-    this.title = title;
-    this.author = author;
-    this.pages = pages;
-    this.genre = genre;
-    this.read = false;
+ * This project is a simple library application that allows
+ * a user to add, view or delete books
+ */ 
 
-    this.info = function() {
-        return `${this.title} by ${this.author}, ${this.pages} pages`;
-    }
+// An icon to show a book has been read
+const checkIcon = '<i class="fa fa-check" aria-hidden="true"></i>';
+
+// An icon to show a book has not been read
+const unCheckIcon = '<i class="fa fa-times" aria-hidden="true"></i>';
+
+// An icon to show delete action
+const deleteIcon = '<i class="fa fa-trash" aria-hidden="true"></i>';
+
+const bookHeaders = ['title', 'author', 'year', 'genre', 'pages', 'read', 'delete'];
+
+function saveLibrary(){
+    // Persistently store the data
+    localStorage.setItem('library', JSON.stringify(myLibrary));
 }
 
-Book.prototype.toggleRead = function(){
-        if (this.read){
-        	this.read = false;
-        }
-        else {
-        	this.read = true;
-        }
+function getLibrary(){
+    // check if there is a library in storage, if not, create a new empty one
+    let data = localStorage.getItem('library')?
+        JSON.parse(localStorage.getItem('library')) : [];
+    if (data) {
+        data.forEach((bookObj) => {
+            bookObj.__proto__ = Book.prototype;
+        });
     }
+    return data;
+}
+ 
+function Book(title, author, year, genre, pages) {
+    this.title = title;
+    this.author = author;
+    this.year = year;
+    this.genre = genre;
+    this.pages = pages
+    this.read = false;
+}
 
-function addBookToLibrary() {
-	let title = document.querySelector("#title").value;
-	let author = document.querySelector("#author").value;
-	let pages = document.querySelector("#pages").value;
-	let genre = document.querySelector('#genre').value;
+Book.prototype.toggleRead = function() {
+    this.read = this.read? false: true;
+};
 
-	let book;
-	if (title && author && pages && genre) {
-		book = new Book(title, author, pages, genre);
 
-		myLibrary.push(book);
-		clearTable();
-		render();
-		
-	}
+function createNewBook(){
+    // create a book object using data obtained from user input
+    let title = document.querySelector("#title").value;
+    let author = document.querySelector("#author").value;
+    let year = document.querySelector("#year").value;
+    let pages = document.querySelector("#pages").value;
+    let genre = document.querySelector("#genre").value;
 
+    return new Book(title, author, year, genre, pages);
+}
+
+function updateChanges(){
+    saveLibrary();
+    clearTable();
+    render();
+}
+
+function addBookToLibrary(book) {
+    myLibrary.push(book);
+    updateChanges();
 }
 
 function removeBookFromLibrary(id){
 	myLibrary.splice(id, 1);
-	clearTable();
-	render();
-
+    updateChanges();
 }
 
 function clearTable(){
-	// delete all displyed records
-	let tbody = document.querySelector("tbody");
-	while (tbody.firstChild){
-		tbody.removeChild(tbody.firstChild);
+	// delete all displayed book records
+	let library = document.querySelector("#book-list");
+	while (library.firstChild){
+		library.removeChild(library.firstChild);
 	}
 }
 
+function deleteLibrary(){
+    localStorage.clear();
+    myLibrary = getLibrary();
+    clearTable();
+    render();
+}
 
-function render(){
-	let bookRecords = document.querySelector('tbody');
+function render() {
+    let bookList = document.querySelector("#book-list");
+    let bookHeader = document.createElement("tr");
 
-	myLibrary.forEach((book, bookID) => {
+    // create the table header
+    bookHeaders.forEach((h) => {
+        th = document.createElement('th');
+        th.innerHTML = h;
+        bookHeader.appendChild(th);
+    });
+   
+    bookList.appendChild(bookHeader);
+    
+    // display all books in the library
+    myLibrary.forEach((book, id) => {
+        let bookInfo = document.createElement('tr'); 
+        let bookKeys = Object.keys(book);
+        bookKeys.push("delete");
+        bookKeys.forEach((key) => {
+            let entry  = document.createElement('td');
+            if (key == "delete"){
+                entry.innerHTML = deleteIcon;
+                entry.classList.add('delete');
+                entry.setAttribute("data-id", id);
+                entry.addEventListener('click', function(){
+                    removeBookFromLibrary(entry.dataset.id);
+                });
 
-		let bookRecord = document.createElement('tr');
-		// book info
-		let title = document.createElement('td');
-		title.textContent = book.title;
+            } else if (key == 'read') {
+                entry.innerHTML = book.read? checkIcon: unCheckIcon;
+                entry.style.color = book.read? "blue": "black";
+                entry.classList.add("read-status");
+                entry.addEventListener('click', function(){
+                    book.toggleRead();
+                    entry.innerHTML = book.read? checkIcon: unCheckIcon;
+                    entry.style.color = book.read? "blue": "black";
+                    updateChanges();
+                });
+            }else{
+                entry.innerHTML = book[key];
+            }
+            bookInfo.appendChild(entry);
+        });
 
-		let author = document.createElement('td');
-		author.textContent = book.author;
+        bookList.appendChild(bookInfo);
 
-		let pages = document.createElement('td');
-		pages.textContent = book.pages;
-
-		let genre = document.createElement('td');
-		genre.textContent = book.genre;
-
-		let read = document.createElement('td');
-		read.setAttribute('id', 'status');
-		let readBtn = document.createElement('a');
-		readBtn.classList.add('sign-up-btn');
-		readBtn.classList.add('danger');
-		readBtn.textContent = 'No'
-		readBtn.addEventListener('click', function(){
-			book.toggleRead();
-			if (book.read === false){
-				readBtn.textContent = 'No';
-				readBtn.classList.add('danger');
-			} else {
-				readBtn.textContent = 'Yes';
-				readBtn.classList.remove('danger');
-			}
-		})
-		read.appendChild(readBtn);
-
-		let remove = document.createElement('td');
-		remove.setAttribute('id', 'remove');
-		remove.setAttribute('data-id', bookID)
-		remove.innerHTML = '<i class="fa fa-trash" aria-hidden="true"></i>';
-
-		remove.addEventListener('click', function(event){
-			removeBookFromLibrary(remove.dataset.id);
-		});
-
-
-		bookRecord.appendChild(title);
-		bookRecord.appendChild(author);
-		bookRecord.appendChild(pages);
-		bookRecord.appendChild(genre);
-		bookRecord.appendChild(read);
-		bookRecord.appendChild(remove);
-
-		bookRecords.append(bookRecord);
-	});
+    });
 
 }
 
+// Library database
+let myLibrary = getLibrary();
+
 render();
 
-let addBook = document.querySelector("#add-book");
-addBook.addEventListener('click', function(){
-	addBookToLibrary();
+// Event listeners
+function hideModal() {
+    let modal = document.querySelector(".add-book-modal");
+    modal.style.display = 'none';
+}
+
+function showModal() {
+    let modal = document.querySelector(".add-book-modal");
+    modal.style.display = 'block';
+}
+
+let addBtn = document.querySelector("#add-btn");
+addBtn.addEventListener("click", function(){
+    showModal();
 });
+
+let closeBtn = document.querySelector(".close");
+closeBtn.addEventListener("click", function(){
+    hideModal();
+});
+
+let addBook = document.querySelector("#book-info-form");
+addBook.addEventListener("submit", function(e){
+    // prevent default submit action which sends data to server)
+    e.preventDefault(); 
+    let book = createNewBook();
+    addBookToLibrary(book);
+    hideModal();
+});
+
+let clearBtn = document.querySelector("#clear-btn");
+clearBtn.addEventListener("click", function(){
+    deleteLibrary();
+});
+

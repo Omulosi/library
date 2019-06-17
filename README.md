@@ -2,8 +2,10 @@
 Library App
 =============
 
-A library application that allows users to add books and
-display info about the currently available books.
+A library application that allows users to add and keep track
+of the books they are reading.
+
+This is solution to [The Odin Project exercise](https://www.theodinproject.com/courses/javascript/lessons/library) on Object Constructors.
 
 ## Demo Link
 
